@@ -1,51 +1,73 @@
-# Credit Card Transaction Analysis 🧾💳
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 
-This project is based on the [YBI Foundation's Credit Card Default Notebook](https://github.com/YBIFoundation/Internship/blob/main/Credit_Card_Default.ipynb), but enhanced and reworked using real transaction data.
+from google.colab import files
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, RocCurveDisplay
 
-## ✅ Enhancements Made
+import kagglehub
 
-- ✅ Replaced broken dataset with real `CreditCardTransaction.csv` from Kaggle.
-- ✅ Used `kagglehub` to download datasets directly into Google Colab.
-- ✅ Performed data cleaning and conversion of transaction dates.
-- ✅ Fixed column mismatches and error handling.
-- ✅ Exploratory Data Analysis (EDA) using `pandas`, `seaborn`, and `matplotlib`.
 
-## 📊 Dataset Description
 
-- Source: Government transactions dataset from Kaggle
-- Rows: 788,000+ credit card transaction records
-- Columns: `Year`, `Month`, `Department`, `Merchant`, `TrnxAmount`, etc.
+path = kagglehub.dataset_download("ybifoundation/credit-card-transaction")
 
-## 🚀 How to Run
+print("Path to dataset files:", path)
 
-1. Open the notebook in Google Colab
-2. Run all cells (internet required for kagglehub)
-3. Dataset will be downloaded automatically
-4. Visualizations and insights will be generated
+df = pd.read_csv(f"{path}/CreditCardTransaction.csv")
+df.head()
 
-## 🔗 Dataset Source
 
-> Dataset from Kaggle: [`CreditCardTransaction`](https://www.kaggle.com/datasets/ybifoundation/credit-card-transaction)
+df['TranxDate'] = pd.to_datetime(df['TranxDate'], errors='coerce')
 
----
+print(df.isnull().sum())
 
-## 📌 Project Goal
 
-To explore and visualize government credit card transactions for identifying spending trends, department behavior, and merchant types.
+df = df.dropna(subset=['TranxDate'])
 
----
+print(df.describe())
+print(df['Department'].value_counts())
 
-## 🧠 Future Improvements
+dept_spend = df.groupby('Department')['TrnxAmount'].sum().sort_values(ascending=False)
+dept_spend.plot(kind='bar', figsize=(10,6), color='teal')
+plt.title("Total Spending by Department")
+plt.ylabel("Amount ($)")
+plt.xticks(rotation=90)
+plt.tight_layout()
+plt.show()
 
-- Add clustering for transaction patterns
-- Visualize seasonal trends per department
-- Build dashboards using Plotly or Streamlit
+monthly_spend = df.groupby(['Year', 'Month'])['TrnxAmount'].sum()
 
----
+monthly_spend.plot(kind='line', marker='o', figsize=(10,5))
+plt.title("Monthly Spending Over Time")
+plt.ylabel("Amount ($)")
+plt.grid(True)
+plt.show()
 
-## 👤 Author
+top_merchants = df['Merchant'].value_counts().head(10)
 
-- Senthamizharan  
-- B.Tech CSE | 3rd Year  
-- GitHub: [senthamizh0912](https://github.com/senthamizh0912)
+top_merchants.plot(kind='bar', color='orange')
+plt.title("Top 10 Frequent Merchants")
+plt.ylabel("Transaction Count")
+plt.xticks(rotation=45)
+plt.show()
+
+from sklearn.preprocessing import LabelEncoder
+from sklearn.cluster import KMeans
+
+df_cluster = df[['TrnxAmount', 'Department']].copy()
+le = LabelEncoder()
+df_cluster['Department'] = le.fit_transform(df_cluster['Department'])
+
+
+kmeans = KMeans(n_clusters=3, random_state=42)
+df_cluster['Cluster'] = kmeans.fit_predict(df_cluster)
+
+
+sns.scatterplot(x='TrnxAmount', y='Department', hue='Cluster', data=df_cluster, palette='viridis')
+plt.title("KMeans Clustering of Transactions")
+plt.show()
 
